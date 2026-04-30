@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useWishlist } from "@/lib/wishlistContext";
@@ -126,6 +126,7 @@ function CollectionsContent() {
 function ProductCard({ product }: { product: Product }) {
     const { isInWishlist, toggle: toggleWishlist } = useWishlist();
     const { showToast } = useToast();
+    const router = useRouter();
     const [hovered, setHovered] = useState(false);
 
     const originalPrice = Math.round(product.priceNum * 1.15);
@@ -145,8 +146,9 @@ function ProductCard({ product }: { product: Product }) {
     };
 
     return (
-        <div className="group relative rounded-xl overflow-hidden transition-all duration-300"
+        <div className="group relative rounded-xl overflow-hidden transition-all duration-300 cursor-pointer"
             style={{ background: "#fff", border: "1px solid #e8e3db", boxShadow: hovered ? "0 8px 30px rgba(201,168,76,0.12)" : "0 1px 4px rgba(0,0,0,0.04)" }}
+            onClick={() => router.push(`/collections/${product.id}`)}
             onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
 
             <Link href={`/collections/${product.id}`} className="block relative" style={{ aspectRatio: "4/5" }}>

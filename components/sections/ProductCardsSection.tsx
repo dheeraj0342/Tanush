@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useWishlist } from "@/lib/wishlistContext";
 import { useToast } from "@/lib/toastContext";
 
@@ -62,6 +63,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 function ProductCard({ product }: { product: Product }) {
     const { isInWishlist, toggle } = useWishlist();
     const { showToast } = useToast();
+    const router = useRouter();
     const wishlisted = isInWishlist(product.id);
 
     function handleToggleWishlist(e: React.MouseEvent) {
@@ -76,7 +78,7 @@ function ProductCard({ product }: { product: Product }) {
     }
 
     return (
-        <div className="group rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07)] overflow-hidden transition-shadow duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
+        <div onClick={() => router.push(`/collections/${product.id}`)} className="group rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07)] overflow-hidden transition-shadow duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.12)] cursor-pointer">
             {/* Image Container */}
             <Link
                 href={`/collections/${product.id}`}

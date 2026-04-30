@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useWishlist } from "@/lib/wishlistContext";
@@ -41,6 +42,7 @@ export default function WishlistPage() {
     const [loading, setLoading] = useState(true);
     const { toggle } = useWishlist();
     const { showToast } = useToast();
+    const router = useRouter();
 
     const fetchWishlist = async () => {
         setLoading(true);
@@ -105,10 +107,10 @@ export default function WishlistPage() {
                 {!loading && items.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {items.map((item) => (
-                            <div key={item.id} className="group relative">
+                            <div key={item.id} className="group relative cursor-pointer" onClick={() => router.push(`/collections/${item.product.id}`)}>
                                 {/* Remove button */}
                                 <button
-                                    onClick={() => handleRemove(item.productId, item.product.name)}
+                                    onClick={(e) => { e.stopPropagation(); handleRemove(item.productId, item.product.name); }}
                                     className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
                                     style={{ background: "rgba(255,255,255,0.9)", color: "#e05252" }}
                                     title="Remove from wishlist"

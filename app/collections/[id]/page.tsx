@@ -33,6 +33,8 @@ interface Product {
     colors: ColorVariant[];
     sku: string;
     gstRate: number;
+    avgRating?: number;
+    reviewCount?: number;
 }
 
 interface Review {
@@ -87,6 +89,7 @@ export default function ProductDetailPage() {
 
     const [reviews, setReviews] = useState<Review[]>([]);
     const [reviewsLoading, setReviewsLoading] = useState(true);
+    const [canReview, setCanReview] = useState(false);
 
     const [activeImage, setActiveImage] = useState(0);
     const [selectedSize, setSelectedSize] = useState("2.4");
@@ -138,6 +141,14 @@ export default function ProductDetailPage() {
     }, [id]);
 
     useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+    useEffect(() => {
+        if (!session?.user?.id) { setCanReview(false); return; }
+        fetch(`/api/reviews/can-review/${id}`)
+            .then((r) => r.json())
+            .then((d) => setCanReview(d.canReview ?? false))
+            .catch(() => setCanReview(false));
+    }, [id, session?.user?.id]);
 
     const avgRating = reviews.length > 0
         ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -485,15 +496,14 @@ export default function ProductDetailPage() {
                                 )}
                             </div>
 
-                            <button
-                                onClick={() => {
-                                    if (!session) { router.push("/sign-in"); return; }
-                                    setShowReviewForm(true);
-                                }}
-                                className="self-start px-6 py-3 rounded-md text-[11px] font-bold uppercase tracking-[0.15em] transition-all hover:opacity-85 cursor-pointer"
-                                style={{ border: "2px solid #c9a84c", color: "#c9a84c", background: "transparent" }}>
-                                Write a Review
-                            </button>
+                            {canReview && (
+                                <button
+                                    onClick={() => setShowReviewForm(true)}
+                                    className="self-start px-6 py-3 rounded-md text-[11px] font-bold uppercase tracking-[0.15em] transition-all hover:opacity-85 cursor-pointer"
+                                    style={{ border: "2px solid #c9a84c", color: "#c9a84c", background: "transparent" }}>
+                                    Write a Review
+                                </button>
+                            )}
                         </div>
 
                         {/* Review Form */}
@@ -614,6 +624,12 @@ export default function ProductDetailPage() {
                                     </div>
                                     <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#999" }}>{p.category}</p>
                                     <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>{p.name}</p>
+                                    {(p.reviewCount ?? 0) > 0 && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <Stars rating={p.avgRating ?? 0} size={11} />
+                                            <span className="text-[10px]" style={{ color: "#aaa" }}>({p.reviewCount})</span>
+                                        </div>
+                                    )}
                                     <p className="text-sm font-bold mt-1" style={{ color: "#c9a84c" }}>{p.price}</p>
                                 </Link>
                             ))}

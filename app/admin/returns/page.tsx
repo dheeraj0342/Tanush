@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { QRCodeSVG } from "qrcode.react";
 
 type ReturnStatus = "PENDING" | "APPROVED" | "REJECTED" | "RECEIVED" | "REFUND_PROCESSED" | "REFUND_FAILED" | "COMPLETED";
 type ReturnReason = "DAMAGED" | "WRONG_ITEM" | "QUALITY_ISSUE" | "CHANGED_MIND" | "OTHER";
@@ -24,6 +25,7 @@ interface ReturnItem {
     razorpayRefundId: string | null;
     refundStatus: string | null;
     refundFailureReason: string | null;
+    upiId: string | null;
     createdAt: string;
     order: {
         id: string;
@@ -102,6 +104,9 @@ export default function AdminReturnsPage() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Failed");
+            if (data.emailError) {
+                setErrors((prev) => ({ ...prev, [id]: `Refund confirmed but email failed: ${data.emailError}` }));
+            }
             await fetchReturns();
         } catch (e: unknown) {
             setErrors((prev) => ({ ...prev, [id]: e instanceof Error ? e.message : "Error" }));
@@ -238,7 +243,7 @@ export default function AdminReturnsPage() {
                 ))}
             </Section>
 
-            <Section title={`Received — Process Refund (${received.length})`} color="#64b5f6" show={received.length > 0}>
+            <Section title={`Received — Confirm Refund (${received.length})`} color="#64b5f6" show={received.length > 0}>
                 {received.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
                         <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -253,15 +258,12 @@ export default function AdminReturnsPage() {
                                     <span style={{ color: "#ef5350" }}>₹{r.deliveryCharges.toLocaleString("en-IN")}</span>
                                 </div>
                                 <div className="flex justify-between text-sm font-bold pt-2 mt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                                    <span style={{ color: "#fff" }}>Will refund via {r.order.paymentMethod === "COD" ? "manual" : "Razorpay"}</span>
+                                    <span style={{ color: "#fff" }}>Refund via UPI</span>
                                     <span style={{ color: "#64b5f6" }}>₹{r.refundAmount.toLocaleString("en-IN")}</span>
                                 </div>
-                                {r.order.paymentMethod === "COD" && (
-                                    <p className="text-[11px] mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>COD order — refund will be marked as manually processed.</p>
-                                )}
-                                {r.order.paymentMethod === "RAZORPAY" && !r.order.razorpayPaymentId && (
-                                    <p className="text-[11px] mt-2" style={{ color: "#ef5350" }}>⚠ No Razorpay payment ID found — cannot process automated refund.</p>
-                                )}
+                                <p className="text-[11px] mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                                    Scan the QR code above to pay, then click Confirm Refund Sent.
+                                </p>
                             </div>
                             {r.receivedAt && (
                                 <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -273,8 +275,8 @@ export default function AdminReturnsPage() {
                             )}
                             {errors[r.id] && <ErrorMsg msg={errors[r.id]} />}
                             <ActionButton
-                                label={`Process Refund — ₹${r.refundAmount.toLocaleString("en-IN")}`}
-                                loadingLabel="Processing Refund..."
+                                label={`Confirm Refund Sent — ₹${r.refundAmount.toLocaleString("en-IN")}`}
+                                loadingLabel="Confirming..."
                                 processingKey={r.id + "process_refund"}
                                 processing={processing}
                                 onClick={() => handleAction(r.id, "process_refund")}
@@ -285,20 +287,14 @@ export default function AdminReturnsPage() {
                 ))}
             </Section>
 
-            <Section title={`Refund Failed — Retry (${failed.length})`} color="#ff8a80" show={failed.length > 0}>
+            <Section title={`Pending Confirmation (${failed.length})`} color="#ff8a80" show={failed.length > 0}>
                 {failed.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
                         <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                            {r.refundFailureReason && (
-                                <div className="mb-3 p-3 rounded-xl" style={{ background: "rgba(183,28,28,0.1)", border: "1px solid rgba(183,28,28,0.2)" }}>
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Failure Reason</p>
-                                    <p className="text-sm" style={{ color: "#ff8a80" }}>{r.refundFailureReason}</p>
-                                </div>
-                            )}
                             {errors[r.id] && <ErrorMsg msg={errors[r.id]} />}
                             <ActionButton
-                                label={`Retry Refund — ₹${r.refundAmount.toLocaleString("en-IN")}`}
-                                loadingLabel="Retrying..."
+                                label={`Confirm Refund Sent — ₹${r.refundAmount.toLocaleString("en-IN")}`}
+                                loadingLabel="Confirming..."
                                 processingKey={r.id + "process_refund"}
                                 processing={processing}
                                 onClick={() => handleAction(r.id, "process_refund")}
@@ -434,6 +430,29 @@ function ReturnCard({
                 <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{r.reason}</p>
             </div>
 
+            {/* UPI ID + QR */}
+            {r.upiId && (
+                <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>Refund via UPI</p>
+                    <div className="flex items-start gap-4">
+                        <div className="rounded-lg overflow-hidden p-1.5 shrink-0" style={{ background: "#fff" }}>
+                            <QRCodeSVG
+                                value={`upi://pay?pa=${encodeURIComponent(r.upiId)}&pn=Customer&am=${r.refundAmount}&cu=INR&tn=Refund+for+order+${r.order.orderNumber}`}
+                                size={96}
+                                bgColor="#ffffff"
+                                fgColor="#1a1a1a"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1 min-w-0">
+                            <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.35)" }}>UPI ID</p>
+                            <p className="text-sm font-mono font-semibold break-all select-all" style={{ color: "#e2c975" }}>{r.upiId}</p>
+                            <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>Amount</p>
+                            <p className="text-base font-bold" style={{ color: "#81c784" }}>₹{r.refundAmount.toLocaleString("en-IN")}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Proof images */}
             {images.length > 0 && (
                 <div className="mb-4">
@@ -481,9 +500,8 @@ function ReturnCard({
             {/* Refund details */}
             {r.status === "REFUND_PROCESSED" && (
                 <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(46,125,50,0.1)", border: "1px solid rgba(46,125,50,0.2)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Refund Details</p>
-                    <p className="text-sm font-bold" style={{ color: "#81c784" }}>₹{r.refundAmount.toLocaleString("en-IN")} processed</p>
-                    {r.razorpayRefundId && <p className="text-xs mt-0.5 font-mono" style={{ color: "rgba(255,255,255,0.45)" }}>ID: {r.razorpayRefundId}</p>}
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Refund Confirmed</p>
+                    <p className="text-sm font-bold" style={{ color: "#81c784" }}>₹{r.refundAmount.toLocaleString("en-IN")} sent via UPI</p>
                     {r.refundProcessedAt && <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{new Date(r.refundProcessedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>}
                 </div>
             )}

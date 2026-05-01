@@ -7,7 +7,6 @@ import {
     sendReturnRejectedEmail,
     sendReturnReceivedEmail,
     sendRefundProcessedEmail,
-    sendRefundFailedEmail,
 } from "@/lib/email";
 
 const VALID_ACTIONS = ["approve", "reject", "mark_received", "process_refund"] as const;
@@ -156,100 +155,32 @@ export async function PATCH(
         }
 
         const refundAmount = returnRequest.refundAmount;
-        const paymentMethod = order.paymentMethod;
-        const razorpayPaymentId = order.razorpayPaymentId;
 
-        // COD orders: manual refund — just mark processed
-        if (paymentMethod === "COD") {
-            await prisma.returnRequest.update({
-                where: { id },
-                data: {
-                    status: "REFUND_PROCESSED",
-                    refundStatus: "SUCCESSFUL",
-                    refundProcessedAt: new Date(),
-                    refundProcessedBy: session.user.id,
-                    adminNote: adminNote ?? "Manual refund processed for COD order",
-                },
-            });
+        await prisma.returnRequest.update({
+            where: { id },
+            data: {
+                status: "REFUND_PROCESSED",
+                refundStatus: "SUCCESSFUL",
+                refundProcessedAt: new Date(),
+                refundProcessedBy: session.user.id,
+                adminNote: adminNote ?? null,
+            },
+        });
 
-            sendRefundProcessedEmail(
-                user.email, user.name, order.orderNumber,
-                refundAmount, order.deliveryTracking?.trackingNumber ?? null, null
-            ).catch(console.error);
-
-            return NextResponse.json({ success: true, status: "REFUND_PROCESSED", method: "manual_cod" });
-        }
-
-        // Razorpay refund
-        if (!razorpayPaymentId) {
-            return NextResponse.json({ error: "No Razorpay payment ID found for this order" }, { status: 400 });
-        }
-
-        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-            return NextResponse.json({ error: "Razorpay not configured" }, { status: 500 });
-        }
-
+        let emailSent = false;
+        let emailError: string | undefined;
         try {
-            const Razorpay = (await import("razorpay")).default;
-            const razorpay = new Razorpay({
-                key_id: process.env.RAZORPAY_KEY_ID,
-                key_secret: process.env.RAZORPAY_KEY_SECRET,
-            });
-
-            const refund = await razorpay.payments.refund(razorpayPaymentId, {
-                amount: refundAmount * 100, // rupees → paise
-                speed: "optimum",
-                receipt: `rfnd_${id}`,      // unique per refund — aids Razorpay support queries
-                notes: {
-                    reason: "Product Return",
-                    order_number: order.orderNumber,
-                    return_request_id: id,
-                },
-            });
-
-            await prisma.returnRequest.update({
-                where: { id },
-                data: {
-                    status: "REFUND_PROCESSED",
-                    refundStatus: "SUCCESSFUL",
-                    razorpayRefundId: refund.id,
-                    refundProcessedAt: new Date(),
-                    refundProcessedBy: session.user.id,
-                    adminNote: adminNote ?? null,
-                },
-            });
-
-            // Update order payment status to REFUNDED
-            await prisma.order.update({
-                where: { id: order.id },
-                data: { paymentStatus: "REFUNDED" },
-            });
-
-            sendRefundProcessedEmail(
+            await sendRefundProcessedEmail(
                 user.email, user.name, order.orderNumber,
-                refundAmount, null, refund.id
-            ).catch(console.error);
-
-            return NextResponse.json({ success: true, status: "REFUND_PROCESSED", razorpayRefundId: refund.id });
-
+                refundAmount, null, null
+            );
+            emailSent = true;
         } catch (e) {
-            const reason = e instanceof Error ? e.message : String(e);
-
-            await prisma.returnRequest.update({
-                where: { id },
-                data: {
-                    status: "REFUND_FAILED",
-                    refundStatus: "FAILED",
-                    refundFailureReason: reason,
-                    refundProcessedAt: new Date(),
-                    refundProcessedBy: session.user.id,
-                },
-            });
-
-            sendRefundFailedEmail(user.email, user.name, order.orderNumber, refundAmount).catch(console.error);
-
-            return NextResponse.json({ error: `Refund failed: ${reason}`, status: "REFUND_FAILED" }, { status: 502 });
+            emailError = e instanceof Error ? e.message : String(e);
+            console.error("sendRefundProcessedEmail failed:", emailError);
         }
+
+        return NextResponse.json({ success: true, status: "REFUND_PROCESSED", emailSent, emailError });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

@@ -432,7 +432,7 @@ export async function sendRefundProcessedEmail(
           ${razorpayRefundId ? `
           <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Refund Reference ID</p>
           <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#1a1a1a;">${razorpayRefundId}</p>` : ""}
-          <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#4a4a4a;">The amount will reflect in your original payment method within 2–5 business days.</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#4a4a4a;">The amount has been sent to your UPI ID. Please check your UPI app for the credit.</p>
         </td>
       </tr>
     </table>

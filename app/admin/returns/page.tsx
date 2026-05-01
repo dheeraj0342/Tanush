@@ -67,6 +67,17 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> 
     COMPLETED: { bg: "rgba(21,101,192,0.12)", text: "#64b5f6", label: "Completed" },
 };
 
+type FilterStatus = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "RECEIVED" | "COMPLETED";
+
+const FILTERS: { key: FilterStatus; label: string; color: string; activeColor: string }[] = [
+    { key: "ALL", label: "All", color: "rgba(255,255,255,0.15)", activeColor: "#c9a84c" },
+    { key: "PENDING", label: "Pending", color: "rgba(240,182,65,0.15)", activeColor: "#f0b641" },
+    { key: "APPROVED", label: "Approved", color: "rgba(46,125,50,0.15)", activeColor: "#81c784" },
+    { key: "REJECTED", label: "Rejected", color: "rgba(183,28,28,0.15)", activeColor: "#ef5350" },
+    { key: "RECEIVED", label: "Received", color: "rgba(21,101,192,0.15)", activeColor: "#64b5f6" },
+    { key: "COMPLETED", label: "Completed", color: "rgba(255,255,255,0.08)", activeColor: "rgba(255,255,255,0.7)" },
+];
+
 export default function AdminReturnsPage() {
     const [returns, setReturns] = useState<ReturnItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,6 +85,7 @@ export default function AdminReturnsPage() {
     const [notes, setNotes] = useState<Record<string, { admin?: string; rejection?: string; inspection?: string }>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [expandedImages, setExpandedImages] = useState<string | null>(null);
+    const [filter, setFilter] = useState<FilterStatus>("ALL");
 
     const fetchReturns = async () => {
         const res = await fetch("/api/admin/returns");
@@ -119,7 +131,33 @@ export default function AdminReturnsPage() {
     const approved = returns.filter((r) => r.status === "APPROVED");
     const received = returns.filter((r) => r.status === "RECEIVED");
     const failed = returns.filter((r) => r.status === "REFUND_FAILED");
+    const rejected = returns.filter((r) => r.status === "REJECTED");
     const done = returns.filter((r) => ["REJECTED", "REFUND_PROCESSED", "COMPLETED"].includes(r.status));
+
+    const counts: Record<FilterStatus, number> = {
+        ALL: returns.length,
+        PENDING: pending.length,
+        APPROVED: approved.length,
+        REJECTED: rejected.length,
+        RECEIVED: received.length + failed.length,
+        COMPLETED: done.filter((r) => r.status !== "REJECTED").length,
+    };
+
+    const show = (section: "pending" | "approved" | "received" | "failed" | "done") => {
+        if (filter === "ALL") return true;
+        if (filter === "PENDING") return section === "pending";
+        if (filter === "APPROVED") return section === "approved";
+        if (filter === "REJECTED") return section === "done" && rejected.length > 0;
+        if (filter === "RECEIVED") return section === "received" || section === "failed";
+        if (filter === "COMPLETED") return section === "done";
+        return false;
+    };
+
+    const filteredDone = filter === "REJECTED"
+        ? rejected
+        : filter === "COMPLETED"
+            ? done.filter((r) => r.status !== "REJECTED")
+            : done;
 
     if (loading) return (
         <div className="flex justify-center py-20">
@@ -129,13 +167,45 @@ export default function AdminReturnsPage() {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold" style={{ color: "#fff" }}>Returns</h1>
                     <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
                         {pending.length} pending · {approved.length} approved · {received.length} received · {failed.length} failed · {done.length} done
                     </p>
                 </div>
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex flex-wrap gap-2 mb-8">
+                {FILTERS.map((f) => {
+                    const active = filter === f.key;
+                    return (
+                        <button
+                            key={f.key}
+                            onClick={() => setFilter(f.key)}
+                            className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
+                            style={{
+                                background: active ? f.activeColor : "rgba(255,255,255,0.05)",
+                                color: active ? (f.key === "ALL" ? "#1a1a1a" : "#1a1a1a") : f.activeColor,
+                                border: active ? "1px solid transparent" : `1px solid ${f.color}`,
+                            }}
+                        >
+                            {f.label}
+                            {counts[f.key] > 0 && (
+                                <span
+                                    className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px]"
+                                    style={{
+                                        background: active ? "rgba(0,0,0,0.2)" : f.color,
+                                        color: active ? "#fff" : f.activeColor,
+                                    }}
+                                >
+                                    {counts[f.key]}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
 
             {returns.length === 0 && (
@@ -169,7 +239,7 @@ export default function AdminReturnsPage() {
                 </div>
             )}
 
-            <Section title={`Pending Review (${pending.length})`} color="#f0b641" show={pending.length > 0}>
+            <Section title={`Pending Review (${pending.length})`} color="#f0b641" show={show("pending") && pending.length > 0}>
                 {pending.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
                         <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -216,7 +286,7 @@ export default function AdminReturnsPage() {
                 ))}
             </Section>
 
-            <Section title={`Approved — Awaiting Customer Shipment (${approved.length})`} color="#81c784" show={approved.length > 0}>
+            <Section title={`Approved — Awaiting Customer Shipment (${approved.length})`} color="#81c784" show={show("approved") && approved.length > 0}>
                 {approved.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
                         <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -243,7 +313,7 @@ export default function AdminReturnsPage() {
                 ))}
             </Section>
 
-            <Section title={`Received — Confirm Refund (${received.length})`} color="#64b5f6" show={received.length > 0}>
+            <Section title={`Received — Confirm Refund (${received.length})`} color="#64b5f6" show={show("received") && received.length > 0}>
                 {received.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
                         <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -287,7 +357,7 @@ export default function AdminReturnsPage() {
                 ))}
             </Section>
 
-            <Section title={`Pending Confirmation (${failed.length})`} color="#ff8a80" show={failed.length > 0}>
+            <Section title={`Pending Confirmation (${failed.length})`} color="#ff8a80" show={show("failed") && failed.length > 0}>
                 {failed.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
                         <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -305,8 +375,8 @@ export default function AdminReturnsPage() {
                 ))}
             </Section>
 
-            <Section title={`Completed (${done.length})`} color="rgba(255,255,255,0.3)" show={done.length > 0}>
-                {done.map((r) => (
+            <Section title={`${filter === "REJECTED" ? "Rejected" : "Completed"} (${filteredDone.length})`} color="rgba(255,255,255,0.3)" show={show("done") && filteredDone.length > 0}>
+                {filteredDone.map((r) => (
                     <ReturnCard key={r.id} r={r} notes={{}} setNote={() => {}} processing={null} errorMsg="" onExpandImage={setExpandedImages} readonly />
                 ))}
             </Section>

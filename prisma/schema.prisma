@@ -99,6 +99,7 @@ model Product {
   name        String
   price       String
   priceNum    Int      @map("price_num")
+  mrp         Int      @default(0) @map("mrp")
   category    String
   categoryKey String   @map("category_key")
   mainImage   String   @map("main_image")

@@ -11,6 +11,7 @@ interface Product {
     name: string;
     price: string;
     priceNum: number;
+    mrp: number;
     category: string;
     mainImage: string;
     avgRating: number;
@@ -135,9 +136,9 @@ function ProductCard({ product }: { product: Product }) {
                     <span className="text-[13px] md:text-[16px] font-bold text-[#C9A84C]">
                         {product.price}
                     </span>
-                    {product.priceNum > 0 && (
+                    {product.mrp > 0 && product.mrp > product.priceNum && (
                         <span className="text-[11px] md:text-[13px] text-[#aaa] line-through">
-                            ₹{Math.round(product.priceNum * 1.4)}
+                            ₹{product.mrp.toLocaleString("en-IN")}
                         </span>
                     )}
                 </div>

@@ -21,6 +21,7 @@ interface Product {
     name: string;
     price: string;
     priceNum: number;
+    mrp: number;
     category: string;
     categoryKey: string;
     mainImage: string;
@@ -129,7 +130,7 @@ function ProductCard({ product }: { product: Product }) {
     const router = useRouter();
     const [hovered, setHovered] = useState(false);
 
-    const originalPrice = Math.round(product.priceNum * 1.15);
+    const originalPrice = product.mrp > 0 && product.mrp > product.priceNum ? product.mrp : null;
     const rating = product.avgRating;
     const reviewCount = product.reviewCount;
     const inWishlist = isInWishlist(product.id);
@@ -189,7 +190,9 @@ function ProductCard({ product }: { product: Product }) {
                 </Link>
                 <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-bold" style={{ color: "#c9a84c" }}>{product.price}</span>
-                    <span className="text-xs line-through" style={{ color: "#bbb" }}>₹{originalPrice.toLocaleString("en-IN")}</span>
+                    {originalPrice && (
+                        <span className="text-xs line-through" style={{ color: "#bbb" }}>₹{originalPrice.toLocaleString("en-IN")}</span>
+                    )}
                 </div>
 
                 {/* Color swatches */}

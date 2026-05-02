@@ -23,6 +23,7 @@ interface Product {
     name: string;
     price: string;
     priceNum: number;
+    mrp: number;
     category: string;
     categoryKey: string;
     mainImage: string;
@@ -244,7 +245,7 @@ export default function ProductDetailPage() {
         );
     }
 
-    const originalPrice = Math.round(product.priceNum * 1.15);
+    const originalPrice = product.mrp > 0 && product.mrp > product.priceNum ? product.mrp : null;
     const colors = Array.isArray(product.colors) ? product.colors : [];
     const selectedColor = selectedColorIndex !== null ? colors[selectedColorIndex] ?? null : null;
     const activeColorImage = selectedColor?.image || "";
@@ -313,7 +314,9 @@ export default function ProductDetailPage() {
 
                             <div className="flex items-center gap-4 mb-3">
                                 <span className="text-xl font-bold" style={{ color: "#c9a84c" }}>{product.price}</span>
-                                <span className="text-sm line-through" style={{ color: "#aaa" }}>₹{originalPrice.toLocaleString("en-IN")}</span>
+                                {originalPrice && (
+                                    <span className="text-sm line-through" style={{ color: "#aaa" }}>₹{originalPrice.toLocaleString("en-IN")}</span>
+                                )}
                                 {reviews.length > 0 && (
                                     <div className="flex items-center gap-2 ml-2">
                                         <Stars rating={avgRating} size={12} />

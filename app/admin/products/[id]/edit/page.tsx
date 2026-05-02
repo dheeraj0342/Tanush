@@ -27,6 +27,7 @@ export default function EditProductPage() {
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [priceNum, setPriceNum] = useState("");
+    const [mrp, setMrp] = useState("");
     const [category, setCategory] = useState("");
     const [categoryKey, setCategoryKey] = useState("");
     const [mainImage, setMainImage] = useState("");
@@ -53,6 +54,7 @@ export default function EditProductPage() {
                 setName(product.name ?? "");
                 setPrice(product.price ?? "");
                 setPriceNum(String(product.priceNum ?? ""));
+                setMrp(String(product.mrp ?? ""));
                 setCategory(product.category ?? "");
                 setCategoryKey(product.categoryKey ?? "");
                 setMainImage(product.mainImage ?? "");
@@ -95,7 +97,7 @@ export default function EditProductPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name, price, priceNum: parseInt(priceNum), category, categoryKey,
+                    name, price, priceNum: parseInt(priceNum), mrp: parseInt(mrp) || 0, category, categoryKey,
                     mainImage, thumbs, description,
                     specs: specs.filter((s) => s.label && s.value),
                     colors,
@@ -135,14 +137,18 @@ export default function EditProductPage() {
                     <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Product Name</label>
                     <input value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} style={inputStyle} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Price Display</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Display Price</label>
                         <input value={price} onChange={(e) => setPrice(e.target.value)} required className={inputCls} style={inputStyle} />
                     </div>
                     <div>
                         <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Price (numeric)</label>
                         <input type="number" value={priceNum} onChange={(e) => setPriceNum(e.target.value)} required min="1" className={inputCls} style={inputStyle} />
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>MRP (₹ strikethrough)</label>
+                        <input type="number" value={mrp} onChange={(e) => setMrp(e.target.value)} placeholder="0" min="0" className={inputCls} style={inputStyle} />
                     </div>
                 </div>
                 <div>

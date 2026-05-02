@@ -132,13 +132,20 @@ function ProductCard({ product }: { product: Product }) {
                 </h3>
 
                 {/* Price */}
-                <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="text-[13px] md:text-[16px] font-bold text-[#C9A84C]">
-                        {product.price}
-                    </span>
+                <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <span className="text-[13px] md:text-[16px] font-bold text-[#C9A84C]">
+                            {product.price}
+                        </span>
+                        {product.mrp > 0 && product.mrp > product.priceNum && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold bg-[#fef3c7] text-[#92400e]">
+                                {Math.round((1 - product.priceNum / product.mrp) * 100)}% off
+                            </span>
+                        )}
+                    </div>
                     {product.mrp > 0 && product.mrp > product.priceNum && (
-                        <span className="text-[11px] md:text-[13px] text-[#aaa] line-through">
-                            ₹{product.mrp.toLocaleString("en-IN")}
+                        <span className="text-[10px] md:text-[11px] text-[#aaa]">
+                            MRP <span className="line-through">₹{product.mrp.toLocaleString("en-IN")}</span>
                         </span>
                     )}
                 </div>

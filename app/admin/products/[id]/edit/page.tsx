@@ -44,6 +44,7 @@ export default function EditProductPage() {
     const categories = [
         { label: "Bridal", key: "bridal" },
         { label: "Traditional & Ethnic", key: "traditional" },
+        {label:"Festive", key:"festive"},
         { label: "Minimal & Daily", key: "minimal" },
     ];
 

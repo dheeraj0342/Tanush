@@ -97,6 +97,7 @@ export default function ProductDetailPage() {
     const [activeImage, setActiveImage] = useState(0);
     const [selectedSize, setSelectedSize] = useState("2.4");
     const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
+    const [activeColorImageIndex, setActiveColorImageIndex] = useState(0);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [careOpen, setCareOpen] = useState(false);
     const [added, setAdded] = useState(false);
@@ -277,24 +278,40 @@ export default function ProductDetailPage() {
                         {/* Gallery */}
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="hidden md:flex flex-col gap-3" style={{ width: 64 }}>
-                                {product.thumbs.map((src, i) => (
-                                    <button key={i} onClick={() => { setActiveImage(i); setSelectedColorIndex(null); }}
-                                        className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer"
-                                        style={{ width: 64, height: 64, border: activeImage === i && !selectedColor ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
-                                        <Image src={src} alt={`View ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="64px" />
-                                    </button>
-                                ))}
-                                {/* Additional color variant images in sidebar */}
-                                {selectedColor?.images && selectedColor.images.length > 0 && selectedColor.images.map((img, imgIdx) => (
-                                    <button
-                                        key={`color-img-${imgIdx}`}
-                                        onClick={() => setActiveImage(-1)}
-                                        className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer"
-                                        style={{ width: 64, height: 64, border: activeImage === -1 && imgIdx === 0 ? "2px solid #c9a84c" : "1px solid #e8e0cc", background: "#f5ede0" }}
-                                    >
-                                        <Image src={img} alt={`${selectedColor.name} view ${imgIdx + 1}`} fill style={{ objectFit: "cover" }} sizes="64px" />
-                                    </button>
-                                ))}
+                                {!selectedColor ? (
+                                    <>
+                                        {product.thumbs.map((src, i) => (
+                                            <button key={i} onClick={() => { setActiveImage(i); setSelectedColorIndex(null); }}
+                                                className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer"
+                                                style={{ width: 64, height: 64, border: activeImage === i && !selectedColor ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
+                                                <Image src={src} alt={`View ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="64px" />
+                                            </button>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <>
+                                        {selectedColor?.images && selectedColor.images.length > 0 ? (
+                                            selectedColor.images.map((img, imgIdx) => (
+                                                <button
+                                                    key={`color-img-${imgIdx}`}
+                                                    onClick={() => setActiveColorImageIndex(imgIdx)}
+                                                    className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer"
+                                                    style={{ width: 64, height: 64, border: activeColorImageIndex === imgIdx ? "2px solid #c9a84c" : "1px solid #e8e0cc", background: "#f5ede0" }}
+                                                >
+                                                    <Image src={img} alt={`${selectedColor.name} view ${imgIdx + 1}`} fill style={{ objectFit: "cover" }} sizes="64px" />
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <button
+                                                onClick={() => setActiveColorImageIndex(0)}
+                                                className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer"
+                                                style={{ width: 64, height: 64, border: activeColorImageIndex === 0 ? "2px solid #c9a84c" : "1px solid #e8e0cc", background: "#f5ede0" }}
+                                            >
+                                                <Image src={selectedColor.image || product.mainImage} alt={selectedColor.name} fill style={{ objectFit: "cover" }} sizes="64px" />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                             </div>
 
                             <div className="flex-1 relative rounded-xl overflow-hidden" style={{ background: "#f0e8d8", aspectRatio: "4/5" }}>
@@ -303,33 +320,53 @@ export default function ProductDetailPage() {
                                         Sold Out
                                     </div>
                                 )}
-                                {activeImage === -1 && selectedColor?.images && selectedColor.images.length > 0 ? (
-                                    <Image src={selectedColor.images[0]} alt={selectedColor.name} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
+                                {selectedColor ? (
+                                    selectedColor?.images && selectedColor.images.length > 0 ? (
+                                        <Image src={selectedColor.images[activeColorImageIndex] || selectedColor.images[0]} alt={selectedColor.name} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
+                                    ) : (
+                                        <Image src={selectedColor.image || product.mainImage} alt={selectedColor.name} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
+                                    )
                                 ) : (
-                                    <Image src={activeThumb} alt={product.name} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
+                                    <Image src={product.thumbs[activeImage] ?? product.mainImage} alt={product.name} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
                                 )}
                             </div>
 
                             {/* Mobile thumbnails */}
                             <div className="flex md:hidden gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                                {product.thumbs.map((src, i) => (
-                                    <button key={i} onClick={() => { setActiveImage(i); setSelectedColorIndex(null); }}
-                                        className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
-                                        style={{ width: 72, height: 72, border: activeImage === i && !selectedColor ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
-                                        <Image src={src} alt={`View ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
-                                    </button>
-                                ))}
-                                {/* Additional color variant images in mobile */}
-                                {selectedColor?.images && selectedColor.images.length > 0 && selectedColor.images.map((img, imgIdx) => (
-                                    <button
-                                        key={`mobile-color-img-${imgIdx}`}
-                                        onClick={() => setActiveImage(-1)}
-                                        className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
-                                        style={{ width: 72, height: 72, border: activeImage === -1 && imgIdx === 0 ? "2px solid #c9a84c" : "1px solid #e8e0cc", background: "#f5ede0" }}
-                                    >
-                                        <Image src={img} alt={`${selectedColor.name} view ${imgIdx + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
-                                    </button>
-                                ))}
+                                {!selectedColor ? (
+                                    <>
+                                        {product.thumbs.map((src, i) => (
+                                            <button key={i} onClick={() => { setActiveImage(i); setSelectedColorIndex(null); }}
+                                                className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
+                                                style={{ width: 72, height: 72, border: activeImage === i && !selectedColor ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
+                                                <Image src={src} alt={`View ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
+                                            </button>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <>
+                                        {selectedColor?.images && selectedColor.images.length > 0 ? (
+                                            selectedColor.images.map((img, imgIdx) => (
+                                                <button
+                                                    key={`mobile-color-img-${imgIdx}`}
+                                                    onClick={() => setActiveColorImageIndex(imgIdx)}
+                                                    className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
+                                                    style={{ width: 72, height: 72, border: activeColorImageIndex === imgIdx ? "2px solid #c9a84c" : "1px solid #e8e0cc", background: "#f5ede0" }}
+                                                >
+                                                    <Image src={img} alt={`${selectedColor.name} view ${imgIdx + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <button
+                                                onClick={() => setActiveColorImageIndex(0)}
+                                                className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
+                                                style={{ width: 72, height: 72, border: activeColorImageIndex === 0 ? "2px solid #c9a84c" : "1px solid #e8e0cc", background: "#f5ede0" }}
+                                            >
+                                                <Image src={selectedColor.image || product.mainImage} alt={selectedColor.name} fill style={{ objectFit: "cover" }} sizes="72px" />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -377,6 +414,8 @@ export default function ProductDetailPage() {
                                                     setSelectedColorIndex(ci === selectedColorIndex ? null : ci);
                                                     // Reset size when color changes
                                                     setSelectedSize(c.sizes[0] ?? "");
+                                                    // Reset color image index to first image
+                                                    setActiveColorImageIndex(0);
                                                 }}
                                                 title={c.name}
                                                 className="relative rounded-full transition-all cursor-pointer"
@@ -391,27 +430,6 @@ export default function ProductDetailPage() {
                                             />
                                         ))}
                                     </div>
-
-                                    {/* Additional color variant images gallery */}
-                                    {selectedColor && selectedColor.images && selectedColor.images.length > 0 && (
-                                        <div className="mt-5 pt-5" style={{ borderTop: "1px solid #e8e0cc" }}>
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: "#1a1a1a" }}>More Views</p>
-                                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                                {selectedColor.images.map((img, imgIdx) => (
-                                                    <button
-                                                        key={imgIdx}
-                                                        onClick={() => {
-                                                            setActiveImage(-1);
-                                                        }}
-                                                        className="relative rounded-md overflow-hidden transition-all cursor-pointer flex-shrink-0 hover:opacity-80"
-                                                        style={{ width: 60, height: 60, border: "1px solid #e0d5c5", background: "#f5ede0" }}
-                                                    >
-                                                        <Image src={img} alt={`${selectedColor.name} view ${imgIdx + 1}`} fill style={{ objectFit: "cover" }} sizes="60px" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 

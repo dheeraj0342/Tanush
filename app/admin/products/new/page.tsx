@@ -14,6 +14,8 @@ interface ColorVariant {
     name: string;
     hex: string;
     image: string;
+    images: string[];
+    sku: string;
     sizes: string[];
 }
 
@@ -60,7 +62,7 @@ export default function NewProductPage() {
         setSpecs((prev) => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s));
     };
 
-    const addColor = () => setColors((prev) => [...prev, { name: "", hex: "#c9a84c", image: "", sizes: ["Free Size"] }]);
+    const addColor = () => setColors((prev) => [...prev, { name: "", hex: "#c9a84c", image: "", images: [], sku: "", sizes: ["Free Size"] }]);
     const removeColor = (i: number) => setColors((prev) => prev.filter((_, idx) => idx !== i));
     const updateColor = (i: number, field: keyof ColorVariant, val: string | string[]) => {
         setColors((prev) => prev.map((c, idx) => idx === i ? { ...c, [field]: val } : c));
@@ -238,29 +240,75 @@ export default function NewProductPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="mb-3">
-                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Available Sizes (comma-separated)</label>
-                                <input
-                                    value={color.sizes.join(", ")}
-                                    onChange={(e) => updateColor(i, "sizes", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                                    placeholder="e.g. 2.2, 2.4, 2.6, 2.8 or Free Size"
-                                    className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                                    style={inputStyle}
-                                />
-                                {color.sizes.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        {color.sizes.map((s, si) => (
-                                            <span key={si} className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(201,168,76,0.15)", color: "#e2c975" }}>{s}</span>
-                                        ))}
-                                    </div>
-                                )}
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>SKU (Color Variant)</label>
+                                    <input
+                                        value={color.sku}
+                                        onChange={(e) => updateColor(i, "sku", e.target.value)}
+                                        placeholder="e.g. TNS-BNG-GOLD-001"
+                                        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Available Sizes</label>
+                                    <input
+                                        value={color.sizes.join(", ")}
+                                        onChange={(e) => updateColor(i, "sizes", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                                        placeholder="e.g. 2.2, 2.4, 2.6, 2.8 or Free Size"
+                                        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                                        style={inputStyle}
+                                    />
+                                </div>
                             </div>
-                            <div>
+                            {color.sizes.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                    {color.sizes.map((s, si) => (
+                                        <span key={si} className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(201,168,76,0.15)", color: "#e2c975" }}>{s}</span>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="mb-3">
                                 <ImageUploader
-                                    label="Color Image (optional)"
+                                    label="Primary Color Image (optional)"
                                     value={color.image}
                                     onChange={(url) => updateColor(i, "image", url)}
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Additional Images for This Color</label>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {color.images.map((img, imgIdx) => (
+                                        <div key={imgIdx} className="relative">
+                                            <img src={img} alt={`Color variant ${imgIdx + 1}`} className="w-20 h-20 rounded-lg object-cover" style={{ border: "1px solid rgba(201,168,76,0.3)" }} />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newImages = color.images.filter((_, idx) => idx !== imgIdx);
+                                                    updateColor(i, "images", newImages);
+                                                }}
+                                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs cursor-pointer hover:opacity-80"
+                                                style={{ background: "#ef5350", color: "#fff" }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const url = prompt("Enter image URL for this color variant:");
+                                        if (url) {
+                                            updateColor(i, "images", [...color.images, url]);
+                                        }
+                                    }}
+                                    className="w-full text-xs font-semibold px-3 py-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                                    style={{ color: "#c9a84c", border: "1px dashed rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.05)" }}
+                                >
+                                    + Add Image
+                                </button>
                             </div>
                         </div>
                     ))}

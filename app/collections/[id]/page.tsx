@@ -419,7 +419,7 @@ export default function ProductDetailPage() {
                                 {[
                                     {
                                         label: "Free Delivery",
-                                        sub: "On all orders",
+                                        sub: "On orders above ₹499",
                                         icon: (
                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                                                 <path d="M1 3h15v13H1z" fill="#c9a84c" opacity={0.15} rx="2" />

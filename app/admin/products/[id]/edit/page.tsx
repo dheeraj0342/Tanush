@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ImageUploader, ThumbsUploader } from "@/components/admin/ProductImageUpload";
@@ -25,6 +25,8 @@ export default function EditProductPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const colorImageInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+    const [uploadingColorImage, setUploadingColorImage] = useState<{ [key: string]: boolean }>({});
 
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
@@ -88,6 +90,27 @@ export default function EditProductPage() {
     const removeColor = (i: number) => setColors((prev) => prev.filter((_, idx) => idx !== i));
     const updateColor = (i: number, field: keyof ColorVariant, val: string | string[]) => {
         setColors((prev) => prev.map((c, idx) => idx === i ? { ...c, [field]: val } : c));
+    };
+
+    const uploadColorImage = async (colorIdx: number, file: File) => {
+        const uploadKey = `color-${colorIdx}`;
+        setUploadingColorImage((prev) => ({ ...prev, [uploadKey]: true }));
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/upload/product", { method: "POST", body: fd });
+            const data = await res.json();
+            if (!res.ok) return;
+            setColors((prev) => prev.map((c, idx) => idx === colorIdx ? { ...c, images: [...c.images, data.url] } : c));
+        } finally {
+            setUploadingColorImage((prev) => ({ ...prev, [uploadKey]: false }));
+        }
+    };
+
+    const handleColorImageFile = (colorIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) uploadColorImage(colorIdx, file);
+        e.target.value = "";
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -323,17 +346,20 @@ export default function EditProductPage() {
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        const url = prompt("Enter image URL for this color variant:");
-                                        if (url) {
-                                            updateColor(i, "images", [...color.images, url]);
-                                        }
-                                    }}
-                                    className="w-full text-xs font-semibold px-3 py-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => colorImageInputRefs.current[`color-${i}`]?.click()}
+                                    disabled={uploadingColorImage[`color-${i}`]}
+                                    className="w-full text-xs font-semibold px-3 py-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity disabled:opacity-50"
                                     style={{ color: "#c9a84c", border: "1px dashed rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.05)" }}
                                 >
-                                    + Add Image
+                                    {uploadingColorImage[`color-${i}`] ? "Uploading..." : "+ Add Image"}
                                 </button>
+                                <input
+                                    ref={(el) => { colorImageInputRefs.current[`color-${i}`] = el; }}
+                                    type="file"
+                                    accept="image/*"
+                                    hidden
+                                    onChange={(e) => handleColorImageFile(i, e)}
+                                />
                             </div>
                         </div>
                     ))}
